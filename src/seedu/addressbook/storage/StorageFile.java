@@ -42,6 +42,12 @@ public class StorageFile {
             super(message);
         }
     }
+    
+    public static class FileDeletedException extends StorageOperationException {
+    	public FileDeletedException(String message) {
+    		super(message);
+    	}
+    }
 
     private final JAXBContext jaxbContext;
 
@@ -54,8 +60,7 @@ public class StorageFile {
         this(DEFAULT_STORAGE_FILEPATH);
     }
 
-    /**
-     * @throws InvalidStorageFilePathException if the given file path is invalid
+    /** * @throws InvalidStorageFilePathException if the given file path is invalid
      */
     public StorageFile(String filePath) throws InvalidStorageFilePathException {
         try {
@@ -88,8 +93,7 @@ public class StorageFile {
         /* Note: Note the 'try with resource' statement below.
          * More info: https://docs.oracle.com/javase/tutorial/essential/exceptions/tryResourceClose.html
          */
-        try (final Writer fileWriter =
-                     new BufferedWriter(new FileWriter(path.toFile()))) {
+        try (final Writer fileWriter = getFileWriter()) {
 
             final AdaptedAddressBook toSave = new AdaptedAddressBook(addressBook);
             final Marshaller marshaller = jaxbContext.createMarshaller();
@@ -100,15 +104,24 @@ public class StorageFile {
             throw new StorageOperationException("Error writing to file: " + path);
         } catch (JAXBException jaxbe) {
             throw new StorageOperationException("Error converting address book into storage format");
+        } catch (FileDeletedException fde) {
+        	throw fde;
         }
     }
 
+    private Writer getFileWriter() throws IOException, FileDeletedException {
+    	File destinationFile = path.toFile();
+        if(! destinationFile.exists())
+        	throw new FileDeletedException("File deleted while running");
+    	return new BufferedWriter(new FileWriter(destinationFile));
+    }
     /**
      * Loads data from this storage file.
      *
      * @throws StorageOperationException if there were errors reading and/or converting data from file.
+     * @throws IOException 
      */
-    public AddressBook load() throws StorageOperationException {
+    public AddressBook load() throws StorageOperationException, IOException {
         try (final Reader fileReader =
                      new BufferedReader(new FileReader(path.toFile()))) {
 
@@ -128,6 +141,7 @@ public class StorageFile {
         // create empty file if not found
         } catch (FileNotFoundException fnfe) {
             final AddressBook empty = new AddressBook();
+            createFile(path);
             save(empty);
             return empty;
 
@@ -135,14 +149,18 @@ public class StorageFile {
         } catch (IOException ioe) {
             throw new StorageOperationException("Error writing to file: " + path);
         } catch (JAXBException jaxbe) {
-            throw new StorageOperationException("Error parsing file data format");
-        } catch (IllegalValueException ive) {
-            throw new StorageOperationException("File contains illegal data values; data type constraints not met");
-        }
+			throw new StorageOperationException("Error parsing file data format");
+		} catch (IllegalValueException ive) {
+			throw new StorageOperationException("File contains illegal data values; data type constraints not met");
+		}
+	}
+    
+    private void createFile(Path path) throws IOException {
+    	path.toFile().createNewFile();
     }
 
-    public String getPath() {
-        return path.toString();
-    }
+	public String getPath() {
+		return path.toString();
+	}
 
 }
