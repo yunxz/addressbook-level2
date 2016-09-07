@@ -1,13 +1,16 @@
 package seedu.addressbook.data;
 
+import seedu.addressbook.data.Tagging.TaggingOperation;
 import seedu.addressbook.data.person.*;
 import seedu.addressbook.data.person.UniquePersonList.*;
 import seedu.addressbook.data.tag.UniqueTagList;
 import seedu.addressbook.data.tag.UniqueTagList.*;
 import seedu.addressbook.data.tag.Tag;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -22,6 +25,7 @@ public class AddressBook {
 
     private final UniquePersonList allPersons;
     private final UniqueTagList allTags; // can contain tags not attached to any person
+    private final List<Tagging> taggings;
 
     /**
      * Creates an empty address book.
@@ -29,6 +33,7 @@ public class AddressBook {
     public AddressBook() {
         allPersons = new UniquePersonList();
         allTags = new UniqueTagList();
+        taggings = new ArrayList<>();
     }
 
     /**
@@ -44,6 +49,7 @@ public class AddressBook {
         for (Person p : allPersons) {
             syncTagsWithMasterList(p);
         }
+        taggings = new ArrayList<>();
     }
 
     /**
@@ -88,6 +94,16 @@ public class AddressBook {
      */
     public void addTag(Tag toAdd) throws DuplicateTagException {
         allTags.add(toAdd);
+    }
+    
+    public void addTagToPerson(Person person, Tag tag) throws DuplicateTagException {
+    	person.addTag(tag);
+    	taggings.add(new Tagging(person, tag, TaggingOperation.ADDITION ));
+    }
+    
+    public void removeTagInPerson(Person person, Tag tag) throws TagNotFoundException {
+    	person.removeTag(tag);
+    	taggings.add(new Tagging(person, tag, TaggingOperation.DELETION));
     }
 
     /**
@@ -142,5 +158,13 @@ public class AddressBook {
      */
     public UniqueTagList getAllTags() {
         return new UniqueTagList(allTags);
+    }
+    
+    public String getTaggingMessage() {
+    	String taggingMessage = new String();
+        for(Tagging tagging : taggings) {
+        	taggingMessage = taggingMessage + tagging + "\n";
+        }
+        return taggingMessage;
     }
 }

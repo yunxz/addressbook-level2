@@ -101,6 +101,7 @@ public class TextUi {
                 DIVIDER);
     }
 
+    
     public void showGoodbyeMessage() {
         showToUser(MESSAGE_GOODBYE, DIVIDER, DIVIDER);
     }
